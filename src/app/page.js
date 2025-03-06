@@ -1,101 +1,176 @@
-import Image from "next/image";
+'use client';
+import { useState, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from "@/components/ui/label"
+import { Mic } from 'lucide-react';
+import Image from 'next/image';
+import logo from '@/images/logo-1.png';
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              src/app/page.js
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+  const [transcription, setTranscription] = useState('');
+  const [translation, setTranslation] = useState('');
+  const [assistantResponse, setAssistantResponse] = useState('');
+  const [bengaliResponse, setBengaliResponse] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [recognition, setRecognition] = useState(null);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  // Initialize speech recognition
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (SpeechRecognition) {
+        const recognition = new SpeechRecognition();
+        recognition.continuous = false;
+        recognition.interimResults = false;
+        recognition.lang = 'bn-BD';
+        
+        recognition.onresult = (event) => {
+          const transcript = event.results[0][0].transcript;
+          setTranscription(prev => prev + ' ' + transcript);
+        };
+
+        recognition.onerror = (event) => {
+          console.error('Recognition error:', event.error);
+        };
+
+        setRecognition(recognition);
+      }
+    }
+  }, []);
+
+  // Handle translation and AI response chain
+  useEffect(() => {
+    const processQuery = async () => {
+      if (transcription.trim().length > 0) {
+        setIsLoading(true);
+        try {
+          // Translate to English
+          const englishText = await translateText(transcription, 'bn|en');
+          setTranslation(englishText);
+
+          // Get AI response
+          const aiResponse = await getAIResponse(englishText);
+          
+          // Translate back to Bengali
+          const bengaliTranslation = await translateText(aiResponse, 'en|bn');
+          setBengaliResponse(bengaliTranslation);
+          setAssistantResponse(aiResponse);
+
+          setTranscription('');
+
+        } catch (error) {
+          console.error('Processing error:', error);
+          setAssistantResponse('Error processing request');
+          setBengaliResponse('ত্রুটি ঘটেছে');
+        }
+        setIsLoading(false);
+      }
+    };
+
+    processQuery();
+  }, [transcription]);
+
+  // Translation function
+  const translateText = async (text, langPair) => {
+    try {
+      const response = await fetch(
+        `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${langPair}`
+      );
+      const data = await response.json();
+      return data.responseData?.translatedText || 'Translation failed';
+    } catch (error) {
+      console.error('Translation error:', error);
+      return 'Translation failed';
+    }
+  };
+
+  // AI Response using Hugging Face Inference API (Zephyr-7b model)
+  const getAIResponse = async (text) => {
+    try {
+      const response = await fetch(
+        'https://api-inference.huggingface.co/models/HuggingFaceH4/zephyr-7b-beta',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${process.env.NEXT_PUBLIC_HF_API_KEY}`
+          },
+          body: JSON.stringify({
+            inputs: text,
+            parameters: {
+              max_new_tokens: 100,
+              temperature: 0.7
+            }
+          })
+        }
+      );
+
+      const data = await response.json();
+      return data[0]?.generated_text || 'No response from AI';
+    } catch (error) {
+      console.error('AI API error:', error);
+      return 'Error getting response';
+    }
+  };
+
+  // Recording handlers
+  const startRecording = () => {
+    recognition?.start();
+    setIsLoading(true);
+  };
+
+  const stopRecording = () => {
+    recognition?.stop();
+    setIsLoading(false);
+  };
+
+  return (
+    <div className="flex items-center justify-center min-h-screen p-4 bg-[var(--custom-purple)]">
+      <Card className="max-w-2xl w-full shadow-md shadow-gray-800">
+        <div className="flex justify-center mb-4">
+          <Image src={logo} alt="BoloGPT Logo" className="w-72 h-40" />
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+        <CardContent className="space-y-4">
+          <div className="flex justify-center text-white hover:border-[var(--custom-purple)]">
+            <Button
+              className="bg-[var(--custom-purple)] text-white hover:shadow-xs hover:shadow-[var(--custom-purple)]"
+              variant={isLoading ? 'destructive' : 'outline'}
+              onMouseDown={startRecording}
+              onMouseUp={stopRecording}
+              onTouchStart={startRecording}
+              onTouchEnd={stopRecording}
+            >
+              <Mic className="h-4 w-4 mr-2" />
+              {isLoading ? 'Release to Stop' : 'Hold to Speak'}
+            </Button>
+          </div>
+          
+          <div className="space-y-4">
+            <Label htmlFor="message">Bangla Query</Label>
+            <Textarea
+              value={transcription}
+              readOnly
+            />
+            <Label htmlFor="message">English Translation</Label>
+            <Textarea
+              value={translation}
+              readOnly
+            />
+            <Label htmlFor="message">AI Response (English)</Label>
+            <Textarea
+              value={assistantResponse}
+              readOnly
+            />
+            <Label htmlFor="message">AI Response (Bangla)</Label>
+            <Textarea
+              value={bengaliResponse}
+              readOnly
+            />
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
