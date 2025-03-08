@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from "@/components/ui/label"
 import { Mic, Volume2 } from 'lucide-react';
 import Image from 'next/image';
-import logo from '@/images/logo-1.png';
+//import logo from '@/images/logo-1.png';
 
 export default function Home() {
   const [transcription, setTranscription] = useState('');
@@ -203,7 +203,14 @@ export default function Home() {
     <div className="flex flex-col items-center justify-center min-h-screen p-4 bg-[var(--custom-purple)] overflow-hidden">
       <Card className="max-w-2xl w-full shadow-md shadow-gray-800 overflow-hidden">
         <div className="flex justify-center mb-4">
-          <Image src={logo} alt="BoloGPT Logo" className="w-72 h-40" />
+        <Image 
+          src="/images/logo-1.png" 
+          alt="BoloGPT Logo" 
+          width={288} 
+          height={160}
+          className="w-72 h-40"
+          priority
+        />
         </div>
         <CardContent className="space-y-4">
           <div className="flex justify-center text-white hover:border-[var(--custom-purple)]">
