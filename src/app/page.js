@@ -91,11 +91,11 @@ export default function Home() {
     }
   };
 
-  // AI Response using Hugging Face Inference API (Zephyr-7b model)
+  // AI Response
   const getAIResponse = async (text) => {
     try {
       const response = await fetch(
-        'https://api-inference.huggingface.co/models/HuggingFaceH4/zephyr-7b-beta',
+        'https://api-inference.huggingface.co/models/mistralai/Mixtral-8x7B-Instruct-v0.1',
         {
           method: 'POST',
           headers: {
@@ -111,12 +111,17 @@ export default function Home() {
           })
         }
       );
-
+  
+      if (!response.ok) {
+        throw new Error(`API Error: ${response.status}`);
+      }
+  
       const data = await response.json();
       return data[0]?.generated_text || 'No response from AI';
+  
     } catch (error) {
       console.error('AI API error:', error);
-      return 'Error getting response';
+      return `Error: ${error.message}`;
     }
   };
 
@@ -196,11 +201,6 @@ export default function Home() {
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-4 bg-[var(--custom-purple)] overflow-hidden">
-      {/* <Script 
-        src="https://code.responsivevoice.org/responsivevoice.js?key=8TCIaRDF"
-        strategy="afterInteractive"
-        onLoad={() => console.log('ResponsiveVoice loaded')}
-      /> */}
       <Card className="max-w-2xl w-full shadow-md shadow-gray-800 overflow-hidden">
         <div className="flex justify-center mb-4">
           <Image src={logo} alt="BoloGPT Logo" className="w-72 h-40" />
