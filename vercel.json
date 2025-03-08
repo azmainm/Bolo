@@ -5,11 +5,14 @@
       "use": "@vercel/next"
     }
   ],
-  "redirects": [
+  "routes": [
     {
-      "source": "/",
-      "destination": "/",
-      "permanent": false
+      "src": "/api/(.*)",
+      "dest": "/api/$1"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/$1"
     }
   ]
 }
