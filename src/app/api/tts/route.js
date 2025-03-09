@@ -2,16 +2,17 @@ import { NextResponse } from 'next/server';
 import { TextToSpeechClient } from '@google-cloud/text-to-speech';
 
 const formattedPrivateKey = process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n') || '';
+console.log(formattedPrivateKey)
 
 const client = new TextToSpeechClient({
   credentials: {
     client_email: process.env.GOOGLE_CLIENT_EMAIL,
     private_key: formattedPrivateKey,
-    //projectId: process.env.GOOGLE_PROJECT_ID
   },
 
   projectId: process.env.GOOGLE_PROJECT_ID,
-  fallback: true
+  fallback: true,
+  scopes: ['https://www.googleapis.com/auth/cloud-platform'],
 });
 
 export async function POST(request) {
