@@ -7,7 +7,7 @@ const client = new TextToSpeechClient({
   credentials: {
     client_email: process.env.GOOGLE_CLIENT_EMAIL,
     private_key: formattedPrivateKey,
-    projectId: process.env.GOOGLE_PROJECT_ID
+    //projectId: process.env.GOOGLE_PROJECT_ID
   },
 
   projectId: process.env.GOOGLE_PROJECT_ID
