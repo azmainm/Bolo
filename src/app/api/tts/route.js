@@ -10,7 +10,8 @@ const client = new TextToSpeechClient({
     //projectId: process.env.GOOGLE_PROJECT_ID
   },
 
-  projectId: process.env.GOOGLE_PROJECT_ID
+  projectId: process.env.GOOGLE_PROJECT_ID,
+  fallback: true
 });
 
 export async function POST(request) {
